@@ -31,7 +31,7 @@ local task = {
   end,
 
   cancel = function(thing)
-  	coroutine.resume(thing) --intoxicate the coroutine
+  	coroutine.resume(thing)
   	coroutine.resume(thing)
   end
 }
