@@ -1,13 +1,14 @@
 local task = {
 	spawn = function(thing,...)
-		if typeof(thing) == "thread" then
+		if type(thing) == "thread" then
 			coroutine.resume(thing)
 			return thing
 		end
 		local AAA,AAB,AAC,AAD,AAE,AAF,AAG,AAH,AAI,AAK,AAL,AAM,AAN,AAO,AAP,AAQ,AAR,AAS,AAT,AAU,AAV,AAW,AAX,AAY,AAZ = ...
-		local new = coroutine.create(function()	
+		local new = coroutine.create(function()
 			thing(AAA,AAB,AAC,AAD,AAE,AAF,AAG,AAH,AAI,AAK,AAL,AAM,AAN,AAO,AAP,AAQ,AAR,AAS,AAT,AAU,AAV,AAW,AAX,AAY,AAZ)
 		end)
+		coroutine.resume(new)
 		return new
 	end,
 
@@ -436,19 +437,22 @@ local TweenInfo = {
 }
 
 function TSCoroutineFunc(newTask,tweenInfo)
+	local Completed = false
 	if tweenInfo.delayTime ~= 0 then
 		newTask.PlaybackState = "Delayed"
 		task.wait(tweenInfo.delayTime)
 	end
-	while newTask.NewTween:update(task.wait()) == false do
-		for q,v in pairs(newTask.CurrentProperties) do
-			newTask.NewInstance[q] = EncodeType(v)
-		end
-		if newTask.IsPlaying == false then
+	while Completed == false do
+		if newTask.IsPlaying == true then
+			newTask.PlaybackState = "Playing"
+			Completed = newTask.NewTween:update(task.wait())
+			for q,v in pairs(newTask.CurrentProperties) do
+				newTask.NewInstance[q] = EncodeType(v)
+			end
+		else
 			newTask.PlaybackState = "Paused"
-			coroutine.yield()
+			task.wait()
 		end
-		newTask.PlaybackState = "Playing"
 	end
 	newTask.PlaybackState = "Completed"
 end
@@ -470,7 +474,7 @@ local TweenService = {
 		end
 		local newTween = tween.new(tweenInfo.time,sendingInstance,properties,(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(1,1):lower()..(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(2,-1))
 		local newTask = {} newTask = {
-			IsPlaying = true,
+			IsPlaying = "NULL",
 			NewTween = newTween,
 			PlaybackState = "Begin",
 			NewInstance = _instance,
@@ -478,9 +482,9 @@ local TweenService = {
 			TweenTask = coroutine.create(function() TSCoroutineFunc(newTask,tweenInfo) end)
 		}
 		return {
-			Play = function() if coroutine.status(newTask.TweenTask) == "suspended" then newTask.IsPlaying = true coroutine.resume(newTask.TweenTask) end end,
+			Play = function() if newTask.IsPlaying == "NULL" then coroutine.resume(newTask.TweenTask) end newTask.IsPlaying = true end,
 			Pause = function() newTask.IsPlaying = false end,
-			Cancel = function() newTask.PlaybackState = "Cancelled"  newTask.TweenTask = coroutine.create(function() TSCoroutineFunc(newTask,tweenInfo) end) newTask.NewTween = tween.new(tweenInfo.time,sendingInstance,properties,(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(1,1):lower()..(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(2,-1)) end,
+			Cancel = function() newTask.PlaybackState = "Cancelled" task.cancel(newTask.TweenTask) newTask.IsPlaying = "NULL" newTask.TweenTask = coroutine.create(function() TSCoroutineFunc(newTask,tweenInfo) end) newTask.NewTween = tween.new(tweenInfo.time,sendingInstance,properties,(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(1,1):lower()..(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(2,-1)) end,
 			PlaybackState = function() return newTask.PlaybackState end,
 			Completed = { --help
 				connect				= function(_,func) task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) end,
@@ -490,5 +494,18 @@ local TweenService = {
 				Wait 					= function() while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end end,
 			}
 		}
+	end,
+	GetValue = function(_,alpha,style,direction)
+		if style == "Linear" then
+			direction = ""
+		end
+		if replacements[style] then
+			style = replacements[style]
+		end
+		local returning = {0}
+		local newTween = tween.new(1,returning,{1},(direction..style):sub(1,1):lower()..(direction..style):sub(2,-1))
+		newTween:set(alpha)
+		newTween = nil
+		return returning[1]
 	end
 }
