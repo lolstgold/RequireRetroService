@@ -43,8 +43,16 @@ local task = {
 
 ]]
 
+function typeof(value)
+	if pcall(function() local Ae = value.lookVector end) == true then --yes
+		return "CFrame"
+	elseif pcall(function() local Ae = value.z end) == true then
+		return "Vector3"
+	end
+end
+
 function DecodeType(value)
-	if pcall(function() local Ae = value.z end) == true then --Vector3
+	if typeof(value) == "Vector3" then
 		return {x = value.x, y = value.y, z = value.z, valueType = 1}
 	end
 	return value
