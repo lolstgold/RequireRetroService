@@ -1,6 +1,6 @@
 local task = {
   spawn = function(thing,...)
-  	if typeof(thing) == "thread" then
+  	if type(thing) == "thread" then
   		coroutine.resume(thing)
   		return thing
   	end
