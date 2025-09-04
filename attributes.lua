@@ -12,6 +12,15 @@ local valueReplacements = {
 	CanTouch = true,
 	CanQuery = true,
 }
+
+function typeof(value)
+	if pcall(function() local Ae = value.lookVector end) == true then --yes
+		return "CFrame"
+	elseif pcall(function() local Ae = value.z end) == true then
+		return "Vector3"
+	end
+end
+
 local attributesModule = {
   GetAttribute = function(part,attribute)
   	if valueReplacements[attribute] then
@@ -40,7 +49,7 @@ SetAttribute = function(part,attribute,value)
 		return
 	end
 	
-	if part.__ATTRIBUTES:findFirstChild(attribute) and (newvals[type(value)] or "StringValue") ~= part.__ATTRIBUTES[attribute].className and part.__ATTRIBUTES[attribute].className ~= "Model" then
+	if part.__ATTRIBUTES:findFirstChild(attribute) and (newvals[typeof(value)] or "StringValue") ~= part.__ATTRIBUTES[attribute].className and part.__ATTRIBUTES[attribute].className ~= "Model" then
 		local bindable = part.__ATTRIBUTES[attribute]:findFirstChild("Event")
 			part.__ATTRIBUTES[attribute]:Destroy()
 			if bindable then
@@ -51,17 +60,17 @@ SetAttribute = function(part,attribute,value)
 	end
 	
 	if part.__ATTRIBUTES:findFirstChild(attribute) and part.__ATTRIBUTES[attribute].className == "Model" then
-		local new = Instance.new(newvals[type(value)],part.__ATTRIBUTES)
+		local new = Instance.new(newvals[typeof(value)],part.__ATTRIBUTES)
 		if part.__ATTRIBUTES[attribute]:findFirstChildOfClass("BindableEvent") then
 			part.__ATTRIBUTES[attribute]:findFirstChildOfClass("BindableEvent").Parent = new
 		end
 		part.__ATTRIBUTES[attribute]:Destroy()
 		new.Name = attribute
 	elseif not part.__ATTRIBUTES:findFirstChild(attribute) then
-		Instance.new(newvals[type(value)] or "StringValue",part.__ATTRIBUTES).Name = attribute
+		Instance.new(newvals[typeof(value)] or "StringValue",part.__ATTRIBUTES).Name = attribute
 	end
 
-	if type(value) == "EnumItem" then
+	if typeof(value) == "EnumItem" then
 		part.__ATTRIBUTES[attribute].Value = value.Name
 	else
 		part.__ATTRIBUTES[attribute].Value = value
