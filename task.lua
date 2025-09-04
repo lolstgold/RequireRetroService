@@ -8,6 +8,7 @@ local task = {
   	local new = coroutine.create(function()	
   		thing(AAA,AAB,AAC,AAD,AAE,AAF,AAG,AAH,AAI,AAK,AAL,AAM,AAN,AAO,AAP,AAQ,AAR,AAS,AAT,AAU,AAV,AAW,AAX,AAY,AAZ)
   	end)
+    coroutine.resume(new)
   	return new
   end,
 
