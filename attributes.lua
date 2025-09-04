@@ -19,6 +19,7 @@ function typeof(value)
 	elseif pcall(function() local Ae = value.z end) == true then
 		return "Vector3"
 	end
+	return type(value)
 end
 
 local attributesModule = {
