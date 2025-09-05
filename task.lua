@@ -1,4 +1,4 @@
-local task = {
+local task = {} task = {
   spawn = function(thing,...)
   	if type(thing) == "thread" then
   		coroutine.resume(thing)
@@ -14,7 +14,7 @@ local task = {
 
   defer = function(thing,...)
   	game:service("RunService").Heartbeat:wait()
-  	return module.spawn(thing,...)
+  	return task.spawn(thing,...)
   end,
 
   wait = function(number)
@@ -27,8 +27,8 @@ local task = {
   end,
   
   delay = function(number,thing,...)
-  	module.wait(number)
-  	return module.spawn(thing,...)
+  	task.wait(number)
+  	return task.spawn(thing,...)
   end,
 
   cancel = function(thing)
