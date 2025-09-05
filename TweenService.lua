@@ -73,7 +73,7 @@ local tween = {
 	_LICENSE     = [[
     MIT LICENSE
 
-    Copyright (c) 2014 Enrique García Cota, Yuichi Tateno, Emmanuel Oga
+    Copyright (c) 2014 Enrique Garc�a Cota, Yuichi Tateno, Emmanuel Oga
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the
@@ -439,7 +439,7 @@ local TweenInfo = {
 			["easingStyle"] = easingStyle or "Linear",
 			["easingDirection"] = easingDirection or "Out", --NOW WITH OutIn!!!!!!!!!!!!!!!!!!!!!!!
 			["repeatCount"] = repeatCount or 0,
-			["reverses"] = reverses or 0,
+			["reverses"] = reverses or false,
 			["delayTime"] = delayTime or 0
 		}
 	end
@@ -447,6 +447,7 @@ local TweenInfo = {
 
 function TSCoroutineFunc(newTask,tweenInfo)
 	local Completed = false
+	local IsReversing = 1
 	if tweenInfo.delayTime ~= 0 then
 		newTask.PlaybackState = "Delayed"
 		task.wait(tweenInfo.delayTime)
@@ -454,16 +455,28 @@ function TSCoroutineFunc(newTask,tweenInfo)
 	while Completed == false do
 		if newTask.IsPlaying == true then
 			newTask.PlaybackState = "Playing"
-			Completed = newTask.NewTween:update(task.wait())
+			local NewTime = task.wait()*IsReversing
+			Completed = newTask.NewTween:update(NewTime)
 			for q,v in pairs(newTask.CurrentProperties) do
 				newTask.NewInstance[q] = EncodeType(v)
+			end
+			if Completed == true and tweenInfo.reverses == true then
+				IsReversing = -1
+				Completed = false
+			elseif tweenInfo.reverses == true and newTask.NewTween.clock == 0 then
+				Completed = true
 			end
 		else
 			newTask.PlaybackState = "Paused"
 			task.wait()
 		end
 	end
-	newTask.PlaybackState = "Completed"
+	if newTask.TimesReset < tweenInfo.repeatCount then
+		newTask.TimesReset = newTask.TimesReset+1
+		TSCoroutineFunc(newTask,tweenInfo)
+	else
+		newTask.PlaybackState = "Completed"
+	end
 end
 
 local replacements = {Exponential = "Expo", Circular = "Circ"}
@@ -488,6 +501,7 @@ local TweenService = {
 			PlaybackState = "Begin",
 			NewInstance = _instance,
 			CurrentProperties = sendingInstance,
+			TimesReset = 0,
 			TweenTask = coroutine.create(function() TSCoroutineFunc(newTask,tweenInfo) end)
 		}
 		return {
@@ -496,10 +510,10 @@ local TweenService = {
 			Cancel = function() newTask.PlaybackState = "Cancelled" task.cancel(newTask.TweenTask) newTask.IsPlaying = "NULL" newTask.TweenTask = coroutine.create(function() TSCoroutineFunc(newTask,tweenInfo) end) newTask.NewTween = tween.new(tweenInfo.time,sendingInstance,properties,(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(1,1):lower()..(tweenInfo.easingDirection..tweenInfo.easingStyle):sub(2,-1)) end,
 			PlaybackState = function() return newTask.PlaybackState end,
 			Completed = { --help
-				connect				= function(_,func) task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) end,
-				Connect 				= function(_,func) task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) end,
-				ConnectParallel 	= function(_,func) task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) end,
-				Once 					= function(_,func) task.spawn(function() while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) end) end,
+				connect				= function(_,func) local TheTask = task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) return {Disconnect = function() task.cancel(TheTask) end, disconnect = function() task.cancel(TheTask) end} end,
+				Connect 				= function(_,func) local TheTask = task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) return {Disconnect = function() task.cancel(TheTask) end, disconnect = function() task.cancel(TheTask) end} end,
+				ConnectParallel 	= function(_,func) local TheTask = task.spawn(function() while true do while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) while newTask.PlaybackState == "Completed" or newTask.PlaybackState == "Cancelled" do task.wait() end end end) return {Disconnect = function() task.cancel(TheTask) end, disconnect = function() task.cancel(TheTask) end} end,
+				Once 					= function(_,func) local TheTask = task.spawn(function() while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end task.spawn(func,newTask.PlaybackState) end) return {Disconnect = function() task.cancel(TheTask) end, disconnect = function() task.cancel(TheTask) end} end,
 				Wait 					= function() while newTask.PlaybackState ~= "Completed" and newTask.PlaybackState ~= "Cancelled" do task.wait() end end,
 			}
 		}
